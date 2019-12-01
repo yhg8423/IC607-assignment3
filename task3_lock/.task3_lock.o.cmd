@@ -783,6 +783,34 @@ deps_/home/hyeonggeun/IC607_hw3/task3_lock/task3_lock.o := \
     $(wildcard include/config/slob.h) \
   include/linux/kasan.h \
     $(wildcard include/config/kasan/generic.h) \
+  include/linux/signal.h \
+  include/linux/sched/signal.h \
+    $(wildcard include/config/sched/autogroup.h) \
+    $(wildcard include/config/bsd/process/acct.h) \
+    $(wildcard include/config/taskstats.h) \
+    $(wildcard include/config/stack/growsup.h) \
+  include/linux/sched/jobctl.h \
+  include/linux/sched/task.h \
+    $(wildcard include/config/have/copy/thread/tls.h) \
+    $(wildcard include/config/have/exit/thread.h) \
+    $(wildcard include/config/arch/wants/dynamic/task/struct.h) \
+    $(wildcard include/config/have/arch/thread/struct/whitelist.h) \
+  include/linux/cred.h \
+    $(wildcard include/config/debug/credentials.h) \
+    $(wildcard include/config/keys.h) \
+  include/linux/capability.h \
+  include/uapi/linux/capability.h \
+  include/linux/key.h \
+  include/linux/assoc_array.h \
+    $(wildcard include/config/associative/array.h) \
+  include/linux/sched/user.h \
+    $(wildcard include/config/fanotify.h) \
+    $(wildcard include/config/epoll.h) \
+    $(wildcard include/config/posix/mqueue.h) \
+    $(wildcard include/config/bpf/syscall.h) \
+    $(wildcard include/config/net.h) \
+    $(wildcard include/config/io/uring.h) \
+  include/linux/ratelimit.h \
 
 /home/hyeonggeun/IC607_hw3/task3_lock/task3_lock.o: $(deps_/home/hyeonggeun/IC607_hw3/task3_lock/task3_lock.o)
 

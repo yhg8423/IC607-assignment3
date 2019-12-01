@@ -4,7 +4,8 @@
 #include <linux/kthread.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
-#include <linux/mutex.h>
+#include <linux/signal.h>
+#include <linux/sched/signal.h>
 #include <linux/spinlock.h>
 
 MODULE_LICENSE("GPL");
@@ -69,11 +70,8 @@ int GetSizeList(list_t *linked_list) {
 	return linked_list->size;
 }
 
-//struct mutex lock;
-spinlock_t lock;
-//wait_queue_t wait;
-//wait_queue_head_t wait_head;
 
+spinlock_t lock;
 list_t *queue = NULL;
 
 static struct task_struct *ExThread1 = NULL;
@@ -83,104 +81,135 @@ static struct task_struct *ExThread4 = NULL;
 static struct task_struct *ExThread5 = NULL;
 	
 static int producer_func_odd(void *data) {
+	allow_signal(SIGKILL);
+
 	list_t *queue = (list_t *)data;
 	int num = 1;
+
 	while(!kthread_should_stop()) {
-		printk("called\n");
 		InsertList(queue, num);
-		printk("q_ptr->tail->key = %d\n", queue->tail->key);
+		printk("@producer_func_odd: q_ptr->tail->key = %d\n", queue->tail->key);
 		num += 2;
-		ssleep(1);		
+		ssleep(1);
+		
+		if(signal_pending(ExThread1)) {
+			break;		
+		}	
 	}
 
 	return 0;
 }
 
 static int producer_func_even(void *data) {
+	allow_signal(SIGKILL);
+
 	list_t *queue = (list_t *)data;
 	int num = 2;
+
 	while(!kthread_should_stop()) {
-		printk("called\n");
 		InsertList(queue, num);
-		printk("q_ptr->tail->key = %d\n", queue->tail->key);
+		printk("@producer_func_even: q_ptr->tail->key = %d\n", queue->tail->key);
 		num += 2;
-		ssleep(1);		
+		ssleep(1);
+		
+		if(signal_pending(ExThread2)) {
+			break;		
+		}	
 	}
 
 	return 0;
 }
 
 static int consumer_func1(void *data) {
+	allow_signal(SIGKILL);
+
 	list_t *queue = (list_t *)data;
 	int num;
+
 	while(!kthread_should_stop()) {
 		spin_lock(&lock);
-		num = DeleteList(queue);
 		if(spin_is_locked(&lock)) {
-			printk("consumer1 locked\n");		
+			printk("con1 lock\n");		
 		}
+		num = DeleteList(queue);
 		spin_unlock(&lock);
 		if(!spin_is_locked(&lock)) {
-			printk("consumer1 unlocked\n");		
+			printk("con1 unlock\n");		
 		}
-		printk("deQ = %d \n", num);
+		printk("@consumer_func1: deQ = %d \n", num);
 		ssleep(1);
 		
+		if(signal_pending(ExThread3)) {
+			break;		
+		}
 	}
 
+	do_exit(0);
 	return 0;
 }
 
 static int consumer_func2(void *data) {
+	allow_signal(SIGKILL);
+
 	list_t *queue = (list_t *)data;
 	int num;
+
 	while(!kthread_should_stop()) {
 		spin_lock(&lock);
-		num = DeleteList(queue);
 		if(spin_is_locked(&lock)) {
-			printk("consumer1 locked\n");		
+			printk("con2 lock\n");		
 		}
+		num = DeleteList(queue);
 		spin_unlock(&lock);
 		if(!spin_is_locked(&lock)) {
-			printk("consumer1 unlocked\n");		
+			printk("con2 unlock\n");		
 		}
-		printk("deQ = %d \n", num);
-		ssleep(1);	
-	}
+		printk("@consumer_func2: deQ = %d \n", num);
+		ssleep(1);
 
+		if(signal_pending(ExThread4)) {
+			break;		
+		}	
+	}
+	
+	do_exit(0);
 	return 0;
 }
 
 static int consumer_func3(void *data) {
+	allow_signal(SIGKILL);
+
 	list_t *queue = (list_t *)data;
 	int num;
+
 	while(!kthread_should_stop()) {
 		spin_lock(&lock);
-		num = DeleteList(queue);
 		if(spin_is_locked(&lock)) {
-			printk("consumer1 locked\n");		
+			printk("con3 lock\n");		
 		}
+		num = DeleteList(queue);
 		spin_unlock(&lock);
 		if(!spin_is_locked(&lock)) {
-			printk("consumer1 unlocked\n");		
+			printk("con3 unlock\n");		
 		}
-		printk("deQ = %d \n", num);
-		ssleep(1);		
+		printk("@consumer_func3: deQ = %d \n", num);
+		ssleep(1);
+
+		if(signal_pending(ExThread5)) {
+			break;		
+		}
 	}
 
+	do_exit(0);
 	return 0;
 }
 
 
-static int __init kthread_task3_init(void) {
+static int __init kthread_task2_init(void) {
+	spin_lock_init(&lock);
+
 	queue = kmalloc(sizeof(list_t), GFP_KERNEL);
 	InitList(queue);
-	
-	spin_lock_init(&lock);
-	//mutex_init(&lock);
-	//init_waitqueue_entry(&wait, current);
-	//init_waitqueue_head(&wait_head);
-
 	if(ExThread1 == NULL) {
 		ExThread1 = kthread_run(producer_func_odd, (void *)queue, "producer odd");	
 	}
@@ -199,7 +228,7 @@ static int __init kthread_task3_init(void) {
 	return 0;
 }
 
-static void __exit kthread_task3_exit(void) {
+static void __exit kthread_task2_exit(void) {
 	if(ExThread1) {
 		kthread_stop(ExThread1);
 		ExThread1 = NULL;	
@@ -223,5 +252,5 @@ static void __exit kthread_task3_exit(void) {
 	kfree(queue);
 }
 
-module_init(kthread_task3_init);
-module_exit(kthread_task3_exit);
+module_init(kthread_task2_init);
+module_exit(kthread_task2_exit);
