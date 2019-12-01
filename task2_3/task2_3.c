@@ -28,7 +28,7 @@ void InitList(list_t *linked_list) {
 }
 
 void InsertList(list_t *linked_list, int key) {
-	node_t *new_node = kmalloc(sizeof(node_t), GFP_KERNEL);
+	node_t *new_node = vmalloc(sizeof(node_t));
 	new_node->key = key;
 	if(linked_list->size == 0) {
 		linked_list->head = new_node;
@@ -55,8 +55,11 @@ int DeleteList(list_t *linked_list) {
 		
 		linked_list->size -= 1;
 		int key = delete_node->key;
-		kfree(delete_node);
+		vfree(delete_node);
 		return key;	
+	}
+	else {
+		return -1;
 	}
 }
 
@@ -73,7 +76,7 @@ static struct task_struct *ExThread4 = NULL;
 static struct task_struct *ExThread5 = NULL;
 	
 static int producer_func_odd(void *data) {
-	list_t *queue = (list_t *)queue;
+	list_t *queue = (list_t *)data;
 	int num = 1;
 	while(!kthread_should_stop()) {
 		printk("called\n");
@@ -87,7 +90,7 @@ static int producer_func_odd(void *data) {
 }
 
 static int producer_func_even(void *data) {
-	list_t *queue = (list_t *)queue;
+	list_t *queue = (list_t *)data;
 	int num = 2;
 	while(!kthread_should_stop()) {
 		printk("called\n");
@@ -100,8 +103,32 @@ static int producer_func_even(void *data) {
 	return 0;
 }
 
-static int consumer_func(void *data) {
-	list_t *queue = (list_t *)queue;
+static int consumer_func1(void *data) {
+	list_t *queue = (list_t *)data;
+	int num;
+	while(!kthread_should_stop()) {
+		num = DeleteList(queue);
+		printk("deQ = %d \n", num);
+		ssleep(1);	
+	}
+
+	return 0;
+}
+
+static int consumer_func2(void *data) {
+	list_t *queue = (list_t *)data;
+	int num;
+	while(!kthread_should_stop()) {
+		num = DeleteList(queue);
+		printk("deQ = %d \n", num);
+		ssleep(1);	
+	}
+
+	return 0;
+}
+
+static int consumer_func3(void *data) {
+	list_t *queue = (list_t *)data;
 	int num;
 	while(!kthread_should_stop()) {
 		num = DeleteList(queue);
@@ -123,13 +150,13 @@ static int __init kthread_task2_init(void) {
 		ExThread2 = kthread_run(producer_func_even, (void *)queue, "producer even");	
 	}
 	if(ExThread3 == NULL) {
-		ExThread3 = kthread_run(consumer_func, (void *)queue, "consumer 1");	
+		ExThread3 = kthread_run(consumer_func1, (void *)queue, "consumer 1");	
 	}
 	if(ExThread4 == NULL) {
-		ExThread5 = kthread_run(consumer_func, (void *)queue, "consumer 2");	
+		ExThread4 = kthread_run(consumer_func2, (void *)queue, "consumer 2");	
 	}
 	if(ExThread5 == NULL) {
-		ExThread5 = kthread_run(consumer_func, (void *)queue, "consumer 3");	
+		ExThread5 = kthread_run(consumer_func3, (void *)queue, "consumer 3");	
 	}
 	return 0;
 }
@@ -155,6 +182,7 @@ static void __exit kthread_task2_exit(void) {
 		kthread_stop(ExThread5);
 		ExThread5 = NULL;	
 	}
+	kfree(queue);
 }
 
 module_init(kthread_task2_init);
