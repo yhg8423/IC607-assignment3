@@ -1,0 +1,1 @@
+cmd_/home/hyeonggeun/IC607_hw3/task3_semaphore/task3_sem.ko := ld -r -m elf_x86_64  -z max-page-size=0x200000 -T ./scripts/module-common.lds  --build-id  -o /home/hyeonggeun/IC607_hw3/task3_semaphore/task3_sem.ko /home/hyeonggeun/IC607_hw3/task3_semaphore/task3_sem.o /home/hyeonggeun/IC607_hw3/task3_semaphore/task3_sem.mod.o ;  true
