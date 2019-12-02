@@ -7,6 +7,7 @@
 #include <linux/signal.h>
 #include <linux/sched/signal.h>
 #include <linux/spinlock.h>
+#include <linux/completion.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Hyeonggeun");
@@ -70,7 +71,7 @@ int GetSizeList(list_t *linked_list) {
 	return linked_list->size;
 }
 
-
+struct completion empty;
 spinlock_t lock;
 list_t *queue = NULL;
 
@@ -87,8 +88,11 @@ static int producer_func_odd(void *data) {
 	int num = 1;
 
 	while(!kthread_should_stop()) {
+		spin_lock(&lock);
 		InsertList(queue, num);
 		printk("@producer_func_odd: q_ptr->tail->key = %d\n", queue->tail->key);
+		complete(&empty);
+		spin_unlock(&lock);
 		num += 2;
 		ssleep(1);
 		
@@ -107,8 +111,11 @@ static int producer_func_even(void *data) {
 	int num = 2;
 
 	while(!kthread_should_stop()) {
+		spin_lock(&lock);
 		InsertList(queue, num);
 		printk("@producer_func_even: q_ptr->tail->key = %d\n", queue->tail->key);
+		complete(&empty);
+		spin_unlock(&lock);
 		num += 2;
 		ssleep(1);
 		
@@ -128,14 +135,13 @@ static int consumer_func1(void *data) {
 
 	while(!kthread_should_stop()) {
 		spin_lock(&lock);
-		if(spin_is_locked(&lock)) {
-			printk("con1 lock\n");		
+		if(GetSizeList(queue) == 0) {
+			spin_unlock(&lock);
+			wait_for_completion(&empty);
+			spin_lock(&lock);	
 		}
 		num = DeleteList(queue);
 		spin_unlock(&lock);
-		if(!spin_is_locked(&lock)) {
-			printk("con1 unlock\n");		
-		}
 		printk("@consumer_func1: deQ = %d \n", num);
 		ssleep(1);
 		
@@ -156,14 +162,13 @@ static int consumer_func2(void *data) {
 
 	while(!kthread_should_stop()) {
 		spin_lock(&lock);
-		if(spin_is_locked(&lock)) {
-			printk("con2 lock\n");		
+		if(GetSizeList(queue) == 0) {
+			spin_unlock(&lock);
+			wait_for_completion(&empty);
+			spin_lock(&lock);	
 		}
 		num = DeleteList(queue);
 		spin_unlock(&lock);
-		if(!spin_is_locked(&lock)) {
-			printk("con2 unlock\n");		
-		}
 		printk("@consumer_func2: deQ = %d \n", num);
 		ssleep(1);
 
@@ -184,14 +189,13 @@ static int consumer_func3(void *data) {
 
 	while(!kthread_should_stop()) {
 		spin_lock(&lock);
-		if(spin_is_locked(&lock)) {
-			printk("con3 lock\n");		
+		if(GetSizeList(queue) == 0) {
+			spin_unlock(&lock);
+			wait_for_completion(&empty);
+			spin_lock(&lock);	
 		}
 		num = DeleteList(queue);
 		spin_unlock(&lock);
-		if(!spin_is_locked(&lock)) {
-			printk("con3 unlock\n");		
-		}
 		printk("@consumer_func3: deQ = %d \n", num);
 		ssleep(1);
 
@@ -205,7 +209,8 @@ static int consumer_func3(void *data) {
 }
 
 
-static int __init kthread_task2_init(void) {
+static int __init kthread_task3_init(void) {
+	init_completion(&empty);
 	spin_lock_init(&lock);
 
 	queue = kmalloc(sizeof(list_t), GFP_KERNEL);
@@ -228,7 +233,7 @@ static int __init kthread_task2_init(void) {
 	return 0;
 }
 
-static void __exit kthread_task2_exit(void) {
+static void __exit kthread_task3_exit(void) {
 	if(ExThread1) {
 		kthread_stop(ExThread1);
 		ExThread1 = NULL;	
@@ -252,5 +257,5 @@ static void __exit kthread_task2_exit(void) {
 	kfree(queue);
 }
 
-module_init(kthread_task2_init);
-module_exit(kthread_task2_exit);
+module_init(kthread_task3_init);
+module_exit(kthread_task3_exit);
