@@ -84,25 +84,29 @@ int GetSizeList(list_t *linked_list) {
 	return linked_list->size; // return the size of list
 }
 
+// declare queue and initialize with NULL
 list_t *queue = NULL;
 
+// task structs for thread module (ExThread1, 2: producer / Exthread3, 4, 5: consumer)
 static struct task_struct *ExThread1 = NULL;
 static struct task_struct *ExThread2 = NULL;
 static struct task_struct *ExThread3 = NULL;
 static struct task_struct *ExThread4 = NULL;
 static struct task_struct *ExThread5 = NULL;
-	
+
+// function which indicates producer that generates odd numbers
 static int producer_func_odd(void *data) {
 	allow_signal(SIGKILL);
-
+	
+	// define queue with data from parameter of function
 	list_t *queue = (list_t *)data;
-	int num = 1;
+	int num = 1; // set as smallest odd number, 1
 	
 	printk("@producer_func_odd: called \n");
 	while(!kthread_should_stop()) {
-		InsertList(queue, num);
+		InsertList(queue, num); // insert odd number to queue
 		printk("@producer_func_odd: q_ptr->tail->key = %d\n", queue->tail->key);
-		num += 2;
+		num += 2; // update num to next odd number
 		ssleep(1);
 		
 		if(signal_pending(ExThread1)) {
@@ -113,17 +117,19 @@ static int producer_func_odd(void *data) {
 	return 0;
 }
 
+// function which indicates producer that generates even numbers
 static int producer_func_even(void *data) {
 	allow_signal(SIGKILL);
 
+	// define queue with data from parameter of function
 	list_t *queue = (list_t *)data;
-	int num = 2;
+	int num = 2; // set as smallest even number, 2
 	
 	printk("@producer_func_even: called \n");
 	while(!kthread_should_stop()) {
-		InsertList(queue, num);
+		InsertList(queue, num); // insert even number to queue
 		printk("@producer_func_even: q_ptr->tail->key = %d\n", queue->tail->key);
-		num += 2;
+		num += 2; // update num to next even number
 		ssleep(1);
 		
 		if(signal_pending(ExThread2)) {
@@ -134,16 +140,19 @@ static int producer_func_even(void *data) {
 	return 0;
 }
 
+// function which indicates consumer
 static int consumer_func1(void *data) {
 	allow_signal(SIGKILL);
-
+	
+	// define queue with data from parameter of function
 	list_t *queue = (list_t *)data;
 	int num;
 	
 	printk("@consumer_func1: called \n");
 	while(!kthread_should_stop()) {
-		num = DeleteList(queue);
+		num = DeleteList(queue); // delete number from queue and store the number to num variable
 		if(num == -1) {
+			// if there is no numbers, print hit bottom
 			printk("@consumer_func1: hit bottom \n", num);
 		}
 		else {
@@ -160,16 +169,19 @@ static int consumer_func1(void *data) {
 	return 0;
 }
 
+// function which indicates consumer
 static int consumer_func2(void *data) {
 	allow_signal(SIGKILL);
-
+	
+	// define queue with data from parameter of function
 	list_t *queue = (list_t *)data;
 	int num;
 
 	printk("@consumer_func2: called \n");
 	while(!kthread_should_stop()) {
-		num = DeleteList(queue);
+		num = DeleteList(queue); // delete number from queue and store the number to num variable
 		if(num == -1) {
+			// if there is no numbers, print hit bottom
 			printk("@consumer_func2: hit bottom \n", num);
 		}
 		else {
@@ -186,16 +198,19 @@ static int consumer_func2(void *data) {
 	return 0;
 }
 
+// function which indicates consumer
 static int consumer_func3(void *data) {
 	allow_signal(SIGKILL);
-
+	
+	// define queue with data from parameter of function
 	list_t *queue = (list_t *)data;
 	int num;
 	
 	printk("@consumer_func3: called \n");
 	while(!kthread_should_stop()) {
-		num = DeleteList(queue);
+		num = DeleteList(queue); // delete number from queue and store the number to num variable
 		if(num == -1) {
+			// if there is no numbers, print hit bottom
 			printk("@consumer_func3: hit bottom \n", num);
 		}
 		else {
@@ -212,11 +227,14 @@ static int consumer_func3(void *data) {
 	return 0;
 }
 
-
+// function to initialize kernel module
 static int __init kthread_task2_init(void) {
+	// allocate queue and initialization
 	queue = kmalloc(sizeof(list_t), GFP_KERNEL);
 	InitList(queue);
 	printk("@kthread_task2_init: called \n");
+
+	// run producer and consumer functions with ExThread1,2,3,4,5 using kthread_run()
 	if(ExThread1 == NULL) {
 		ExThread1 = kthread_run(producer_func_odd, (void *)queue, "producer odd");	
 	}
@@ -235,6 +253,7 @@ static int __init kthread_task2_init(void) {
 	return 0;
 }
 
+// function to exit kernel module
 static void __exit kthread_task2_exit(void) {
 	printk("@kthread_task2_exit: called \n");
 	if(ExThread1) {
@@ -257,8 +276,10 @@ static void __exit kthread_task2_exit(void) {
 		kthread_stop(ExThread5);
 		ExThread5 = NULL;	
 	}
+	// deallocate queue
 	kfree(queue);
 }
 
+// Initialize and exit module with above functions
 module_init(kthread_task2_init);
 module_exit(kthread_task2_exit);
