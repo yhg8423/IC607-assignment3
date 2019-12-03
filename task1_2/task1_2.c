@@ -7,7 +7,7 @@
 // kernel module setting
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Hyeonggeun");
-MODULE_DESCRIPTION("Hello World Module for Hw3 Task1");
+MODULE_DESCRIPTION("Find Task by PID Module for Hw3 Task1");
 
 static int pid = 0; // integer variable to store pid number
 module_param(pid, int, 0); // get pid number by using module_param()
