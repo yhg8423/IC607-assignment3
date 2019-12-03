@@ -86,30 +86,36 @@ int GetSizeList(list_t *linked_list) {
 }
 
 
-struct semaphore empty;
-struct semaphore mutex;
+struct semaphore empty; // declare semaphore variable for check empty
+struct semaphore mutex; // declare semaphore variable for mutex lock
 
-list_t *queue = NULL;
+list_t *queue = NULL; // declare queue
 
+// task structs for thread module (ExThread1, 2: producer / Exthread3, 4, 5: consumer)
 static struct task_struct *ExThread1 = NULL;
 static struct task_struct *ExThread2 = NULL;
 static struct task_struct *ExThread3 = NULL;
 static struct task_struct *ExThread4 = NULL;
 static struct task_struct *ExThread5 = NULL;
-	
+
+// function which indicates producer that generates odd numbers
 static int producer_func_odd(void *data) {
 	allow_signal(SIGKILL);
-
+	
+	// define queue with data from parameter of function
 	list_t *queue = (list_t *)data;
-	int num = 1;
+	int num = 1; // set as smallest odd number, 1
 	
 	printk("@producer_func_odd: called \n");
 	while(!kthread_should_stop()) {
+		// wait to acquire mutex lock if other thread use it
+		// it can be woken up by interrupt 
+		// if return value is zero, it means that it can acquire semaphore for mutex lock
 		if(down_interruptible(&mutex)==0) {
-			InsertList(queue, num);
+			InsertList(queue, num); // insert odd number to queue
 			printk("@producer_func_odd: q_ptr->tail->key = %d\n", queue->tail->key);
 			num += 2;
-			up(&mutex);			
+			up(&mutex); // release semaphore for mutex lock
 		}
 		ssleep(1);
 		
@@ -121,19 +127,24 @@ static int producer_func_odd(void *data) {
 	return 0;
 }
 
+// function which indicates producer that generates even numbers
 static int producer_func_even(void *data) {
 	allow_signal(SIGKILL);
-
+	
+	// define queue with data from parameter of function
 	list_t *queue = (list_t *)data;
-	int num = 2;
+	int num = 2; // set as smallest even number, 2
 	
 	printk("@producer_func_even: called \n");
 	while(!kthread_should_stop()) {
+		// wait to acquire mutex lock if other thread use it
+		// it can be woken up by interrupt 
+		// if return value is zero, it means that it can acquire semaphore for mutex lock
 		if(down_interruptible(&mutex)==0) {
-		InsertList(queue, num);
+			InsertList(queue, num); // insert odd number to queue
 			printk("@producer_func_even: q_ptr->tail->key = %d\n", queue->tail->key);
 			num += 2;
-			up(&mutex);
+			up(&mutex); // release semaphore for mutex lock
 		}
 		ssleep(1);
 		
@@ -145,6 +156,7 @@ static int producer_func_even(void *data) {
 	return 0;
 }
 
+// function which indicates consumer
 static int consumer_func1(void *data) {
 	allow_signal(SIGKILL);
 
@@ -153,7 +165,13 @@ static int consumer_func1(void *data) {
 	
 	printk("@consumer_func1: called \n");
 	while(!kthread_should_stop()) {
+		// wait to delete number if other thread use it
+		// it can be woken up by interrupt 
+		// if return value is zero, it means that it can acquire semaphore for deletion number
 		if(down_interruptible(&empty)==0) {
+			// wait to acquire mutex lock if other thread use it
+			// it can be woken up by interrupt 
+			// if return value is zero, it means that it can acquire semaphore for mutex lock
 			if(down_interruptible(&mutex)==0) {
 				num = DeleteList(queue);
 				if(num == -1) {
@@ -162,9 +180,9 @@ static int consumer_func1(void *data) {
 				else {
 					printk("@consumer_func1: deQ = %d \n", num);
 				}
-				up(&mutex);			
+				up(&mutex); // release semaphore for mutex lock			
 			}
-			up(&empty);	
+			up(&empty); // release semaphore for deletion numbers
 		}
 
 		ssleep(1);
@@ -178,15 +196,23 @@ static int consumer_func1(void *data) {
 	return 0;
 }
 
+// function which indicates consumer
 static int consumer_func2(void *data) {
 	allow_signal(SIGKILL);
-
+	
+	// define queue with data from parameter of function
 	list_t *queue = (list_t *)data;
 	int num;
 	
 	printk("@consumer_func2: called \n");
 	while(!kthread_should_stop()) {
+		// wait to delete number if other thread use it
+		// it can be woken up by interrupt 
+		// if return value is zero, it means that it can acquire semaphore for deletion number
 		if(down_interruptible(&empty)==0) {
+			// wait to acquire mutex lock if other thread use it
+			// it can be woken up by interrupt 
+			// if return value is zero, it means that it can acquire semaphore for mutex lock
 			if(down_interruptible(&mutex)==0) {
 				num = DeleteList(queue);
 				if(num == -1) {
@@ -195,9 +221,9 @@ static int consumer_func2(void *data) {
 				else {
 					printk("@consumer_func2: deQ = %d \n", num);
 				}
-				up(&mutex);			
+				up(&mutex); // release semaphore for mutex lock		
 			}
-			up(&empty);	
+			up(&empty); // release semaphore for deletion numbers
 		}
 
 		ssleep(1);
@@ -211,15 +237,23 @@ static int consumer_func2(void *data) {
 	return 0;
 }
 
+// function which indicates consumer
 static int consumer_func3(void *data) {
 	allow_signal(SIGKILL);
-
+	
+	// define queue with data from parameter of function
 	list_t *queue = (list_t *)data;
 	int num;
 	
 	printk("@consumer_func3: called \n");
 	while(!kthread_should_stop()) {
+		// wait to delete number if other thread use it
+		// it can be woken up by interrupt 
+		// if return value is zero, it means that it can acquire semaphore for deletion number
 		if(down_interruptible(&empty)==0) {
+			// wait to acquire mutex lock if other thread use it
+			// it can be woken up by interrupt 
+			// if return value is zero, it means that it can acquire semaphore for mutex lock
 			if(down_interruptible(&mutex)==0) {
 				num = DeleteList(queue);
 				if(num == -1) {
@@ -228,9 +262,9 @@ static int consumer_func3(void *data) {
 				else {
 					printk("@consumer_func3: deQ = %d \n", num);
 				}
-				up(&mutex);			
+				up(&mutex); // release semaphore for mutex lock			
 			}
-			up(&empty);	
+			up(&empty); // release semaphore for deletion numbers
 		}
 
 		ssleep(1);
@@ -244,15 +278,18 @@ static int consumer_func3(void *data) {
 	return 0;
 }
 
-
+// function to initialize kernel module
 static int __init kthread_task3_init(void) {
-	sema_init(&empty, 1);
-	sema_init(&mutex, 1);
-
+	sema_init(&empty, 1); // initialize semaphore variable, empty
+	sema_init(&mutex, 1); // initialize semaphore variable, mutex
+	
+	// allocate queue and initailization
 	queue = kmalloc(sizeof(list_t), GFP_KERNEL);
 	InitList(queue);
 	printk("@kthread_task3_init: called \n");
 	printk("lock on \n");
+
+	// run producer and consumer functions with ExThread1,2,3,4,5 using kthread_run()
 	if(ExThread1 == NULL) {
 		ExThread1 = kthread_run(producer_func_odd, (void *)queue, "producer odd");	
 	}
@@ -271,6 +308,7 @@ static int __init kthread_task3_init(void) {
 	return 0;
 }
 
+// function to exit kernel module
 static void __exit kthread_task3_exit(void) {
 	printk("@kthread_task3_exit: called \n");
 	if(ExThread1) {
@@ -296,5 +334,6 @@ static void __exit kthread_task3_exit(void) {
 	kfree(queue);
 }
 
+// Initialize and exit module with above functions
 module_init(kthread_task3_init);
 module_exit(kthread_task3_exit);
