@@ -10,7 +10,7 @@
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Hyeonggeun");
-MODULE_DESCRIPTION("Producer & Consumer Model for Hw3 Task2");
+MODULE_DESCRIPTION("Producer & Consumer Model for Hw3 Task3 (with semaphore)");
 
 typedef struct __node_t {
 	int key;
@@ -86,7 +86,8 @@ static int producer_func_odd(void *data) {
 
 	list_t *queue = (list_t *)data;
 	int num = 1;
-
+	
+	printk("@producer_func_odd: called \n");
 	while(!kthread_should_stop()) {
 		if(down_interruptible(&mutex)==0) {
 			InsertList(queue, num);
@@ -109,7 +110,8 @@ static int producer_func_even(void *data) {
 
 	list_t *queue = (list_t *)data;
 	int num = 2;
-
+	
+	printk("@producer_func_even: called \n");
 	while(!kthread_should_stop()) {
 		if(down_interruptible(&mutex)==0) {
 		InsertList(queue, num);
@@ -132,23 +134,23 @@ static int consumer_func1(void *data) {
 
 	list_t *queue = (list_t *)data;
 	int num;
-
+	
+	printk("@consumer_func1: called \n");
 	while(!kthread_should_stop()) {
 		if(down_interruptible(&empty)==0) {
 			if(down_interruptible(&mutex)==0) {
 				num = DeleteList(queue);
-				printk("@consumer_func1: deQ = %d \n", num);
+				if(num == -1) {
+					printk("@consumer_func1: hit bottom \n", num);
+				}
+				else {
+					printk("@consumer_func1: deQ = %d \n", num);
+				}
 				up(&mutex);			
-			}
-			else {
-				printk("@consumer_func1: hit bottomA\n");
 			}
 			up(&empty);	
 		}
-		else {
-			printk("@consumer_func1: hit bottomB\n");
-		}
-		
+
 		ssleep(1);
 		
 		if(signal_pending(ExThread3)) {
@@ -165,21 +167,21 @@ static int consumer_func2(void *data) {
 
 	list_t *queue = (list_t *)data;
 	int num;
-
+	
+	printk("@consumer_func2: called \n");
 	while(!kthread_should_stop()) {
 		if(down_interruptible(&empty)==0) {
 			if(down_interruptible(&mutex)==0) {
 				num = DeleteList(queue);
-				printk("@consumer_func2: deQ = %d \n", num);
+				if(num == -1) {
+					printk("@consumer_func2: hit bottom \n", num);
+				}
+				else {
+					printk("@consumer_func2: deQ = %d \n", num);
+				}
 				up(&mutex);			
 			}
-			else {
-				printk("@consumer_func2: hit bottomA\n");
-			}
 			up(&empty);	
-		}
-		else {
-			printk("@consumer_func2: hit bottomB\n");
 		}
 
 		ssleep(1);
@@ -198,21 +200,21 @@ static int consumer_func3(void *data) {
 
 	list_t *queue = (list_t *)data;
 	int num;
-
+	
+	printk("@consumer_func3: called \n");
 	while(!kthread_should_stop()) {
 		if(down_interruptible(&empty)==0) {
 			if(down_interruptible(&mutex)==0) {
 				num = DeleteList(queue);
-				printk("@consumer_func3: deQ = %d \n", num);
+				if(num == -1) {
+					printk("@consumer_func3: hit bottom \n", num);
+				}
+				else {
+					printk("@consumer_func3: deQ = %d \n", num);
+				}
 				up(&mutex);			
 			}
-			else {
-				printk("@consumer_func3: hit bottomA\n");
-			}
 			up(&empty);	
-		}
-		else {
-			printk("@consumer_func3: hit bottomB\n");
 		}
 
 		ssleep(1);
@@ -233,6 +235,8 @@ static int __init kthread_task3_init(void) {
 
 	queue = kmalloc(sizeof(list_t), GFP_KERNEL);
 	InitList(queue);
+	printk("@kthread_task3_init: called \n");
+	printk("lock on \n");
 	if(ExThread1 == NULL) {
 		ExThread1 = kthread_run(producer_func_odd, (void *)queue, "producer odd");	
 	}
@@ -252,6 +256,7 @@ static int __init kthread_task3_init(void) {
 }
 
 static void __exit kthread_task3_exit(void) {
+	printk("@kthread_task3_exit: called \n");
 	if(ExThread1) {
 		kthread_stop(ExThread1);
 		ExThread1 = NULL;	

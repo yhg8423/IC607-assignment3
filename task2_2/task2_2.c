@@ -28,7 +28,7 @@ void InitList(list_t *linked_list) {
 }
 
 void InsertList(list_t *linked_list, int key) {
-	node_t *new_node = kmalloc(sizeof(node_t), GFP_KERNEL);
+	node_t *new_node = vmalloc(sizeof(node_t));
 	new_node->key = key;
 	if(linked_list->size == 0) {
 		linked_list->head = new_node;
@@ -57,8 +57,11 @@ int DeleteList(list_t *linked_list) {
 		linked_list->size -= 1;
 		printk("Delete key: %d\n", delete_node->key);
 		int key = delete_node->key;
-		kfree(delete_node);
+		vfree(delete_node);
 		return key;	
+	}
+	else {
+		return -1;	
 	}
 }
 
@@ -70,7 +73,7 @@ int GetSizeList(list_t *linked_list) {
 static struct task_struct *ExThread = NULL;
 
 static int QueuePrintk(void *data) {
-	list_t *queue = kmalloc(sizeof(list_t), GFP_KERNEL);
+	list_t *queue = vmalloc(sizeof(list_t), GFP_KERNEL);
 	InitList(queue);
 	
 	int key = 0;

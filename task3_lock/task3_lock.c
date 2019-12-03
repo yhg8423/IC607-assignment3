@@ -86,7 +86,8 @@ static int producer_func_odd(void *data) {
 
 	list_t *queue = (list_t *)data;
 	int num = 1;
-
+	
+	printk("@producer_func_odd: called \n");
 	while(!kthread_should_stop()) {
 		spin_lock(&lock);
 		InsertList(queue, num);
@@ -109,7 +110,8 @@ static int producer_func_even(void *data) {
 
 	list_t *queue = (list_t *)data;
 	int num = 2;
-
+	
+	printk("@producer_func_even: called \n");
 	while(!kthread_should_stop()) {
 		spin_lock(&lock);
 		InsertList(queue, num);
@@ -132,7 +134,8 @@ static int consumer_func1(void *data) {
 
 	list_t *queue = (list_t *)data;
 	int num;
-
+	
+	printk("@consumer_func1: called \n");
 	while(!kthread_should_stop()) {
 		spin_lock(&lock);
 		if(GetSizeList(queue) == 0) {
@@ -142,7 +145,12 @@ static int consumer_func1(void *data) {
 		}
 		num = DeleteList(queue);
 		spin_unlock(&lock);
-		printk("@consumer_func1: deQ = %d \n", num);
+		if(num == -1) {
+			printk("@consumer_func1: hit bottom \n", num);
+		}
+		else {
+			printk("@consumer_func1: deQ = %d \n", num);
+		}
 		ssleep(1);
 		
 		if(signal_pending(ExThread3)) {
@@ -160,6 +168,7 @@ static int consumer_func2(void *data) {
 	list_t *queue = (list_t *)data;
 	int num;
 
+	printk("@consumer_func2: called \n");
 	while(!kthread_should_stop()) {
 		spin_lock(&lock);
 		if(GetSizeList(queue) == 0) {
@@ -169,7 +178,12 @@ static int consumer_func2(void *data) {
 		}
 		num = DeleteList(queue);
 		spin_unlock(&lock);
-		printk("@consumer_func2: deQ = %d \n", num);
+		if(num == -1) {
+			printk("@consumer_func2: hit bottom \n", num);
+		}
+		else {
+			printk("@consumer_func2: deQ = %d \n", num);
+		}
 		ssleep(1);
 
 		if(signal_pending(ExThread4)) {
@@ -186,7 +200,8 @@ static int consumer_func3(void *data) {
 
 	list_t *queue = (list_t *)data;
 	int num;
-
+	
+	printk("@consumer_func3: called \n");
 	while(!kthread_should_stop()) {
 		spin_lock(&lock);
 		if(GetSizeList(queue) == 0) {
@@ -196,7 +211,12 @@ static int consumer_func3(void *data) {
 		}
 		num = DeleteList(queue);
 		spin_unlock(&lock);
-		printk("@consumer_func3: deQ = %d \n", num);
+		if(num == -1) {
+			printk("@consumer_func3: hit bottom \n", num);
+		}
+		else {
+			printk("@consumer_func3: deQ = %d \n", num);
+		}
 		ssleep(1);
 
 		if(signal_pending(ExThread5)) {
@@ -215,6 +235,8 @@ static int __init kthread_task3_init(void) {
 
 	queue = kmalloc(sizeof(list_t), GFP_KERNEL);
 	InitList(queue);
+	printk("@kthread_task3_init: called \n");
+	printk("lock on \n");
 	if(ExThread1 == NULL) {
 		ExThread1 = kthread_run(producer_func_odd, (void *)queue, "producer odd");	
 	}
@@ -234,6 +256,7 @@ static int __init kthread_task3_init(void) {
 }
 
 static void __exit kthread_task3_exit(void) {
+	printk("@kthread_task3_exit: called \n");
 	if(ExThread1) {
 		kthread_stop(ExThread1);
 		ExThread1 = NULL;	
